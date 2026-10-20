@@ -4,12 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Misr Trip Coordinator</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@500;600&display=swap">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f6b68">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Misr Trip">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@500;600&display=swap">
 <style>
+/* Layout: ops board. Header with totals, view switch, then one manifest per view grouped by booking or origin. */
 :root{
   --bg:#f3f6f6; --surface:#ffffff; --ink:#12302f; --muted:#5b7171; --line:#d6e0df;
-  --accent:#0f6b68; --accent-soft:#e1efee; --time:#b45f06; --pin:#7a4d00; --pin-soft:#fbf1dc; --warn:#a33a2a;
+  --accent:#0f6b68; --accent-soft:#e1efee; --time:#b45f06; --gold:#7a4d00; --gold-soft:#fbf1dc; --warn:#a33a2a;
   --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
   --body:"Source Sans 3","Segoe UI",Roboto,Arial,sans-serif;
   --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
@@ -17,50 +24,59 @@
 }
 @media (prefers-color-scheme: dark){:root{
   --bg:#0e1716; --surface:#152221; --ink:#e3eeed; --muted:#93a9a7; --line:#2a3d3c;
-  --accent:#4fb8b2; --accent-soft:#183331; --time:#f0a24a; --pin:#f3c56b; --pin-soft:#2d2512; --warn:#ef8a78;
+  --accent:#4fb8b2; --accent-soft:#183331; --time:#f0a24a; --gold:#f3c56b; --gold-soft:#2d2512; --warn:#ef8a78;
   color-scheme:dark}}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-.wrap{max-width:860px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
-header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:10px;border-bottom:2px solid var(--ink);padding-bottom:10px}
-h1{font-family:var(--display);font-weight:700;font-size:2.1rem;margin:0;line-height:1}
-.sub{color:var(--muted);margin:4px 0 0;font-size:.9rem}
-.count{font-family:var(--display);font-size:1rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
-.count b{font-size:1.6rem;color:var(--ink)}
-.tabs{display:flex;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:4px}
-.tabs button{flex:1;border:0;background:none;padding:9px 8px;border-radius:6px;font:inherit;font-weight:600;color:var(--muted);cursor:pointer}
-.tabs button[aria-selected=true]{background:var(--ink);color:var(--bg)}
-.list{display:flex;flex-direction:column;gap:12px}
-.booking{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
-.booking.pinned{border-color:var(--pin)}
-.bhead{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--accent-soft)}
-.booking.pinned .bhead{background:var(--pin-soft)}
-.bmeta{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;min-width:0}
-.pnr{font-family:var(--mono);font-weight:600;color:var(--accent)}
-.booking.pinned .pnr{color:var(--pin)}
-.flight{font-family:var(--mono);font-weight:600;font-size:.9rem}
-.time{font-family:var(--display);font-weight:700;font-size:1.5rem;color:var(--time);line-height:1;font-variant-numeric:tabular-nums}
-.date{color:var(--muted);font-size:.9rem}
-.tag{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--pin)}
-.bactions{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.row{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(110px,170px);gap:10px;align-items:center;padding:8px 12px;border-top:1px solid var(--line)}
-.row .n{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.85rem}
-.row .name{font-weight:600;overflow-wrap:anywhere}
-.row.vip .name::after{content:" ★";color:var(--pin)}
+.wrap{max-width:1080px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:24px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;border-bottom:2px solid var(--ink);padding-bottom:12px}
+h1{font-family:var(--display);font-weight:700;font-size:2.2rem;letter-spacing:.01em;margin:0;line-height:1;text-wrap:balance}
+.sub{color:var(--muted);margin:4px 0 0}
+.totals{display:flex;gap:18px;font-variant-numeric:tabular-nums}
+.totals div{display:flex;flex-direction:column;align-items:flex-end}
+.totals b{font-family:var(--display);font-size:1.8rem;line-height:1}
+.totals span{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+h2{font-family:var(--display);font-weight:600;font-size:1.35rem;margin:0 0 10px;letter-spacing:.02em;text-transform:uppercase;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+h2 small{font-family:var(--body);text-transform:none;font-weight:400;font-size:.9rem;color:var(--muted);letter-spacing:0}
+.views{display:flex;gap:6px;flex-wrap:wrap}
+.views button{padding:7px 14px;font-weight:600}
+.views button[aria-selected=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 input,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 9px;min-width:0}
-input.bus{width:100%;font-family:var(--mono);font-size:.9rem}
-input.bus.saved{border-color:var(--accent)}
 input:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:7px 12px}
 button.primary{background:var(--accent);border-color:var(--accent);color:var(--surface);font-weight:600}
-button.danger{border-color:var(--warn);color:var(--warn);background:var(--surface)}
+button.danger{border-color:var(--warn);color:var(--warn);padding:5px 10px;font-size:.85rem}
 button.danger.confirm{background:var(--warn);color:var(--surface)}
 button:disabled{opacity:.55;cursor:default}
+.manifest{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.mhead,.row{display:grid;gap:10px;align-items:center;padding:8px 12px}
+.cols-bus{grid-template-columns:32px minmax(0,2.2fr) 90px minmax(0,1.2fr) minmax(120px,1fr)}
+.cols-origin{grid-template-columns:32px minmax(0,2.2fr) 90px minmax(0,1.2fr) minmax(0,1.2fr)}
+.mhead{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border-bottom:1px solid var(--line)}
+.row{border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.group-label{padding:8px 12px;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:.9rem;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 14px}
+.group-label.lead{background:var(--gold-soft);color:var(--gold)}
+.group-label.origin{background:var(--ink);color:var(--bg);font-family:var(--display);font-size:1.15rem;letter-spacing:.04em;text-transform:uppercase}
+.group-label.origin span:last-child{font-family:var(--body);font-size:.85rem;text-transform:none;letter-spacing:0;font-weight:600}
+.glmeta{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;min-width:0}
+.glmeta .time{font-family:var(--display);font-weight:700;font-size:1.35rem;color:var(--time);line-height:1;font-variant-numeric:tabular-nums}
+.glactions{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .setall{display:flex;gap:6px}
-.setall input{width:110px;font-family:var(--mono);font-size:.85rem;padding:6px 8px}
-.setall button{padding:6px 10px;font-size:.85rem}
-.colhead{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(110px,170px);gap:10px;padding:0 12px;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.setall input{width:110px;font-family:var(--mono);font-size:.85rem;padding:5px 8px}
+.setall button{padding:5px 10px;font-size:.85rem}
+.n{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.85rem}
+.name{font-weight:600;overflow-wrap:anywhere}
+.row.star .name::after{content:" ★";color:var(--gold)}
+.chip{font-family:var(--mono);font-size:.75rem;padding:2px 7px;border-radius:4px;background:var(--accent-soft);color:var(--accent)}
+.flight{font-family:var(--mono);font-weight:600;font-size:.82rem}
+.leg{font-size:.85rem;font-variant-numeric:tabular-nums}
+.leg span{color:var(--muted)}
+input.bus{width:100%;font-family:var(--mono);font-size:.9rem;padding:5px 7px}
+input.bus.saved{border-color:var(--accent)}
+.lbl{display:none}
+.empty{padding:24px 12px;color:var(--muted);text-align:center}
 details.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
 details.panel summary{cursor:pointer;font-weight:700}
 .form{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:12px}
@@ -70,15 +86,22 @@ details.panel summary{cursor:pointer;font-weight:700}
 .form .actions{grid-column:1/-1;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .status{font-size:.85rem;color:var(--muted)}
 .status.err{color:var(--warn)}
-.banner{padding:10px 12px;border-radius:8px;background:var(--pin-soft);color:var(--pin);font-size:.9rem}
-.empty{padding:24px 12px;color:var(--muted);text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.banner{padding:10px 12px;border-radius:8px;background:var(--gold-soft);color:var(--gold);font-size:.9rem}
 footer{display:flex;justify-content:flex-end;gap:10px;align-items:center;font-size:.85rem;color:var(--muted);flex-wrap:wrap}
 footer button{padding:5px 10px;font-size:.85rem}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:.9rem}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:.9rem;z-index:5}
 [hidden]{display:none!important}
-@media (max-width:560px){
-  .row,.colhead{grid-template-columns:22px minmax(0,1fr) 110px;gap:8px}
-  .setall input{width:90px}
+@media (max-width:760px){
+  .mhead{display:none}
+  .row{grid-template-columns:28px minmax(0,1fr);grid-template-areas:"n a" "n b" "n c" "n d";row-gap:4px}
+  .row>:nth-child(1){grid-area:n;align-self:start}
+  .row>:nth-child(2){grid-area:a}
+  .row>:nth-child(3){grid-area:b}
+  .row>:nth-child(4){grid-area:c}
+  .row>:nth-child(5){grid-area:d}
+  .lbl{display:inline;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;margin-right:6px}
+  .totals{gap:12px}
+  .setall input{width:96px}
 }
 </style>
 </head>
@@ -89,23 +112,34 @@ footer button{padding:5px 10px;font-size:.85rem}
       <h1>Misr Trip Coordinator</h1>
       <p class="sub">Cairo airport transfers to and from Mazrah. All times local.</p>
     </div>
-    <div class="count"><b id="cPax">0</b> passengers · <b id="cBook">0</b> bookings</div>
+    <div class="totals">
+      <div><b id="tPax">0</b><span>Passengers</span></div>
+      <div><b id="tBook">0</b><span>Bookings</span></div>
+      <div><b id="tOrig">0</b><span>Origins</span></div>
+    </div>
   </header>
 
   <div class="banner" id="configBanner" hidden>Not connected yet. Paste your Supabase Project URL and anon key into config.js.</div>
 
-  <div class="tabs" role="tablist">
-    <button type="button" role="tab" id="tabArr" aria-selected="true" data-tab="arr">Arrivals in Cairo</button>
-    <button type="button" role="tab" id="tabDep" aria-selected="false" data-tab="dep">Departures from Cairo</button>
+  <div class="views" role="tablist">
+    <button type="button" role="tab" data-view="arr" aria-selected="true">Arrivals in Cairo</button>
+    <button type="button" role="tab" data-view="dep" aria-selected="false">Departures from Cairo</button>
+    <button type="button" role="tab" data-view="org" aria-selected="false">By origin</button>
   </div>
 
-  <div class="colhead" id="colhead"><span>#</span><span>Passenger</span><span id="busHead">Cairo to Mazrah bus</span></div>
-  <div class="list" id="list"><div class="empty">Loading passengers...</div></div>
+  <section>
+    <h2 id="viewTitle">Cairo arrivals <small>Terminal 3 to Mazrah</small></h2>
+    <div class="manifest">
+      <div class="mhead" id="mhead"></div>
+      <div id="rows"><div class="empty">Loading passengers...</div></div>
+    </div>
+  </section>
 
   <details class="panel" id="addPanel">
     <summary>Add a booking</summary>
     <form class="form" id="addForm" autocomplete="off">
       <label>PNR<input id="fPnr" required maxlength="12" placeholder="e.g. Y869HY"></label>
+      <label>Travelling from<input id="fOrigin" required list="originList" placeholder="e.g. Kerala, Dubai, Qatar"></label>
       <label>Arrival flight into Cairo<input id="fArrFl" required placeholder="e.g. XY 267"></label>
       <label>Arrives Cairo<input id="fArrT" type="datetime-local" required value="2026-10-27T15:20"></label>
       <label>Departure flight from Cairo<input id="fDepFl" required placeholder="e.g. XY 270"></label>
@@ -116,6 +150,7 @@ footer button{padding:5px 10px;font-size:.85rem}
         <span class="status" id="fStatus"></span>
       </div>
     </form>
+    <datalist id="originList"></datalist>
   </details>
 
   <details class="panel" id="loginPanel">
@@ -137,108 +172,126 @@ footer button{padding:5px 10px;font-size:.85rem}
   const CFG = window.APP_CONFIG || {};
   const SUPABASE_URL = CFG.SUPABASE_URL || "";
   const SUPABASE_ANON_KEY = CFG.SUPABASE_ANON_KEY || "";
-  const PINNED = CFG.PINNED || [];
+  const TOP = CFG.TOP_OF_LIST || [];
+  const STARRED = CFG.STARRED || {};
+  const ORIGINS = CFG.ORIGINS || ["Kerala", "Dubai", "Qatar"];
   const $ = id => document.getElementById(id);
   const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  let sb = null, rows = [], tab = "arr", isAdmin = false, adminPin = "", pendingDel = null;
+  let sb = null, rows = [], view = "arr", isAdmin = false, adminPin = "", pendingDel = null;
 
   const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const norm = s => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
   const normFl = s => String(s).toUpperCase().replace(/\s+/g, " ").trim().replace(/^([A-Z0-9]{2})\s?(\d+)$/, "$1 $2");
-  const pinIdx = name => PINNED.map(norm).indexOf(norm(name));
+  const titleCase = s => String(s).trim().replace(/\s+/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  const topIdx = name => { const i = TOP.map(norm).indexOf(norm(name)); return i < 0 ? Infinity : i; };
+  const starTitle = name => { const k = Object.keys(STARRED).find(n => norm(n) === norm(name)); return k === undefined ? null : STARRED[k]; };
+  const originOf = r => r.origin || "Kerala";
   function fmt(v){
     if(!v) return {d:"", t:""};
-    const s = String(v).replace(" ", "T");
-    const [d, t] = s.split("T"); const [y, m, dd] = d.split("-");
+    const [d, t] = String(v).replace(" ", "T").split("T"); const [, m, dd] = d.split("-");
     return {d: +dd + " " + MON[+m - 1], t: (t || "").slice(0, 5)};
   }
   function toast(msg){ const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, 2200); }
 
-  /* Group rows into bookings for the active list and order them:
-     bookings containing pinned passengers first (in PINNED order), then by time, then PNR. */
-  function bookings(){
-    const fl = tab === "arr" ? "arr_flight" : "dep_flight";
-    const tm = tab === "arr" ? "arr_time" : "dep_time";
+  /* Bookings ordered: the booking holding the first TOP_OF_LIST names first, then by time, then PNR.
+     Inside a booking: TOP_OF_LIST names first, then booking order. */
+  function bookings(list, timeKey){
     const map = new Map();
-    rows.forEach(r => {
-      if(!map.has(r.pnr)) map.set(r.pnr, {pnr: r.pnr, list: [], flights: new Set(), time: null});
-      const b = map.get(r.pnr);
-      b.list.push(r); b.flights.add(r[fl]);
-      const t = String(r[tm]); if(!b.time || t < b.time) b.time = t;
+    list.forEach(r => {
+      if(!map.has(r.pnr)) map.set(r.pnr, {pnr: r.pnr, list: []});
+      map.get(r.pnr).list.push(r);
     });
     const out = [...map.values()];
     out.forEach(b => {
-      b.pin = Math.min(...b.list.map(r => { const i = pinIdx(r.name); return i < 0 ? Infinity : i; }));
-      b.list.sort((a, c) => {
-        const pa = pinIdx(a.name), pc = pinIdx(c.name);
-        if(pa >= 0 || pc >= 0) return (pa < 0 ? Infinity : pa) - (pc < 0 ? Infinity : pc);
-        return String(a[tm]).localeCompare(String(c[tm])) || (a.seq ?? 0) - (c.seq ?? 0) || a.id - c.id;
-      });
+      b.top = Math.min(...b.list.map(r => topIdx(r.name)));
+      b.time = b.list.map(r => String(r[timeKey])).sort()[0];
+      b.list.sort((a, c) => (topIdx(a.name) - topIdx(c.name)) || (a.seq ?? 0) - (c.seq ?? 0) || a.id - c.id);
     });
-    out.sort((a, c) => (a.pin - c.pin) || a.time.localeCompare(c.time) || a.pnr.localeCompare(c.pnr));
+    out.sort((a, c) => (a.top - c.top) || a.time.localeCompare(c.time) || a.pnr.localeCompare(c.pnr));
     return out;
+  }
+  const legHTML = (label, fl, t) => { const f = fmt(t); return `<span class="leg"><span class="lbl">${label}</span><span class="flight">${esc(fl)}</span> <span>${f.d}</span> ${f.t}</span>`; };
+  const nameHTML = r => `<span class="name">${esc(r.name)}${starTitle(r.name) ? " (" + esc(starTitle(r.name)) + ")" : ""}</span>`;
+  const rowClass = (cols, r) => `row ${cols}${starTitle(r.name) !== null ? " star" : ""}`;
+
+  function renderBusView(){
+    const arr = view === "arr";
+    const fl = arr ? "arr_flight" : "dep_flight", tm = arr ? "arr_time" : "dep_time", busKey = arr ? "arr_bus" : "dep_bus";
+    $("viewTitle").innerHTML = arr ? "Cairo arrivals <small>Terminal 3 to Mazrah</small>" : "Cairo departures <small>Mazrah to Terminal 3</small>";
+    $("mhead").className = "mhead cols-bus";
+    $("mhead").innerHTML = `<span>#</span><span>Passenger</span><span>PNR</span><span>${arr ? "Arrives Cairo" : "Departs Cairo"}</span><span>${arr ? "Cairo to Mazrah bus" : "Mazrah to Cairo bus"}</span>`;
+    let n = 0;
+    return bookings(rows, tm).map(b => {
+      const flights = [...new Set(b.list.map(r => r[fl]))];
+      const f = fmt(b.time);
+      const head = `<div class="group-label${b.top !== Infinity ? " lead" : ""}">
+        <span class="glmeta"><span class="time">${f.t}</span><span>${flights.map(esc).join(" / ")} ${arr ? "lands" : "departs"} ${f.d}</span><span class="chip">${esc(b.pnr)}</span><span>${b.list.length} pax · ${originOf(b.list[0]) ? "from " + esc(originOf(b.list[0])) : ""}</span></span>
+        <span class="glactions">
+          <span class="setall"><input id="all-${view}-${esc(b.pnr)}" placeholder="Bus for all" aria-label="Bus number for all of ${esc(b.pnr)}"><button type="button" data-setall="${esc(b.pnr)}">Apply</button></span>
+          ${isAdmin ? `<button type="button" class="danger${pendingDel === b.pnr ? " confirm" : ""}" data-del="${esc(b.pnr)}">${pendingDel === b.pnr ? "Confirm delete" : "Delete booking"}</button>` : ""}
+        </span>
+      </div>`;
+      return head + b.list.map(r => { n++; return `<div class="${rowClass("cols-bus", r)}">
+        <span class="n">${n}</span>${nameHTML(r)}
+        <span><span class="lbl">PNR</span><span class="chip">${esc(r.pnr)}</span></span>
+        ${legHTML(arr ? "Arrives" : "Departs", r[fl], r[tm])}
+        <span><input class="bus${r[busKey] ? " saved" : ""}" id="bus-${view}-${r.id}" data-id="${r.id}" value="${esc(r[busKey] || "")}" placeholder="Bus no." aria-label="Bus for ${esc(r.name)}"></span>
+      </div>`; }).join("");
+    }).join("");
+  }
+
+  function renderOriginView(){
+    $("viewTitle").innerHTML = "Passengers by origin <small>Where each booking starts its journey</small>";
+    $("mhead").className = "mhead cols-origin";
+    $("mhead").innerHTML = `<span>#</span><span>Passenger</span><span>PNR</span><span>Arrives Cairo</span><span>Departs Cairo</span>`;
+    const groups = new Map();
+    rows.forEach(r => { const o = originOf(r); if(!groups.has(o)) groups.set(o, []); groups.get(o).push(r); });
+    const ordered = [...groups.entries()].map(([o, list]) => ({o, list, top: Math.min(...list.map(r => topIdx(r.name)))}))
+      .sort((a, c) => (a.top - c.top) || (c.list.length - a.list.length) || a.o.localeCompare(c.o));
+    return ordered.map(g => {
+      const bks = bookings(g.list, "arr_time");
+      let n = 0;
+      return `<div class="group-label origin"><span>From ${esc(g.o)}</span><span>${g.list.length} passenger${g.list.length === 1 ? "" : "s"} · ${bks.length} booking${bks.length === 1 ? "" : "s"}</span></div>` +
+        bks.map(b => b.list.map(r => { n++; return `<div class="${rowClass("cols-origin", r)}">
+          <span class="n">${n}</span>${nameHTML(r)}
+          <span><span class="lbl">PNR</span><span class="chip">${esc(r.pnr)}</span></span>
+          ${legHTML("Arrives", r.arr_flight, r.arr_time)}
+          ${legHTML("Departs", r.dep_flight, r.dep_time)}
+        </div>`; }).join("")).join("");
+    }).join("");
   }
 
   function render(){
-    $("cPax").textContent = rows.length;
-    $("cBook").textContent = new Set(rows.map(r => r.pnr)).size;
-    $("busHead").textContent = tab === "arr" ? "Cairo to Mazrah bus" : "Mazrah to Cairo bus";
-    const busKey = tab === "arr" ? "arr_bus" : "dep_bus";
-    const list = bookings();
-    if(!list.length){ $("list").innerHTML = `<div class="empty">${sb ? "No bookings yet. Add one below." : "Not connected to the database."}</div>`; return; }
-    let n = 0;
-    $("list").innerHTML = list.map(b => {
-      const f = fmt(b.time);
-      const pinned = b.pin !== Infinity;
-      const head = `<div class="bhead">
-        <div class="bmeta">
-          ${pinned ? `<span class="tag">Pinned</span>` : ""}
-          <span class="pnr">${esc(b.pnr)}</span>
-          <span class="flight">${[...b.flights].map(esc).join(" / ")}</span>
-          <span class="time">${f.t}</span><span class="date">${f.d}</span>
-          <span class="date">${b.list.length} pax</span>
-        </div>
-        <div class="bactions">
-          <div class="setall">
-            <input id="all-${tab}-${esc(b.pnr)}" data-pnr="${esc(b.pnr)}" placeholder="Bus for all" aria-label="Bus number for all passengers in ${esc(b.pnr)}">
-            <button type="button" data-setall="${esc(b.pnr)}">Apply</button>
-          </div>
-          ${isAdmin ? `<button type="button" class="danger${pendingDel === b.pnr ? " confirm" : ""}" data-del="${esc(b.pnr)}">${pendingDel === b.pnr ? "Confirm delete" : "Delete booking"}</button>` : ""}
-        </div>
-      </div>`;
-      const body = b.list.map(r => {
-        n++;
-        return `<div class="row${pinIdx(r.name) >= 0 ? " vip" : ""}">
-          <span class="n">${n}</span>
-          <span class="name">${esc(r.name)}</span>
-          <input class="bus${r[busKey] ? " saved" : ""}" id="bus-${tab}-${r.id}" data-id="${r.id}" value="${esc(r[busKey] || "")}" placeholder="Bus no." aria-label="${tab === "arr" ? "Cairo to Mazrah" : "Mazrah to Cairo"} bus for ${esc(r.name)}">
-        </div>`;
-      }).join("");
-      return `<section class="booking${pinned ? " pinned" : ""}">${head}${body}</section>`;
-    }).join("");
+    $("tPax").textContent = rows.length;
+    $("tBook").textContent = new Set(rows.map(r => r.pnr)).size;
+    const origins = [...new Set(rows.map(originOf))];
+    $("tOrig").textContent = origins.length;
+    $("originList").innerHTML = [...new Set([...ORIGINS, ...origins])].map(o => `<option value="${esc(o)}">`).join("");
+    const html = view === "org" ? renderOriginView() : renderBusView();
+    $("rows").innerHTML = rows.length ? html : `<div class="empty">${sb ? "No bookings yet. Add one below." : "Not connected to the database."}</div>`;
   }
 
   async function load(){
     const { data, error } = await sb.from("passengers").select("*").order("id");
-    if(error){ $("list").innerHTML = `<div class="empty">Could not load passengers: ${esc(error.message)}</div>`; return; }
-    const active = document.activeElement;
-    if(active && active.classList && active.classList.contains("bus") && active.value !== active.defaultValue){ rows = data; return; }
-    rows = data; render();
+    if(error){ $("rows").innerHTML = `<div class="empty">Could not load passengers: ${esc(error.message)}</div>`; return; }
+    rows = data;
+    const a = document.activeElement;
+    if(a && a.tagName === "INPUT" && $("rows").contains(a)) return;  // don't wipe a field being typed in
+    render();
   }
 
-  /* Tabs */
-  document.querySelector(".tabs").addEventListener("click", e => {
-    const b = e.target.closest("button[data-tab]"); if(!b) return;
-    tab = b.dataset.tab;
-    $("tabArr").setAttribute("aria-selected", tab === "arr");
-    $("tabDep").setAttribute("aria-selected", tab === "dep");
-    pendingDel = null; render();
+  /* View switch */
+  document.querySelector(".views").addEventListener("click", e => {
+    const b = e.target.closest("button[data-view]"); if(!b) return;
+    view = b.dataset.view; pendingDel = null;
+    document.querySelectorAll(".views button").forEach(x => x.setAttribute("aria-selected", x === b));
+    render();
   });
 
   /* Save one passenger's bus number */
-  $("list").addEventListener("change", async e => {
+  $("rows").addEventListener("change", async e => {
     const t = e.target; if(!t.classList.contains("bus") || !sb) return;
-    const key = tab === "arr" ? "arr_bus" : "dep_bus";
+    const key = view === "arr" ? "arr_bus" : "dep_bus";
     const val = t.value.trim() || null;
     const { error } = await sb.from("passengers").update({[key]: val}).eq("id", +t.dataset.id);
     if(error){ toast("Bus number not saved: " + error.message); return; }
@@ -246,20 +299,20 @@ footer button{padding:5px 10px;font-size:.85rem}
     t.classList.toggle("saved", !!val); toast("Bus number saved");
   });
 
-  /* Apply bus to whole booking, and admin delete */
-  $("list").addEventListener("click", async e => {
+  /* Bus for a whole booking, and admin delete */
+  $("rows").addEventListener("click", async e => {
     const sa = e.target.closest("button[data-setall]");
     if(sa && sb){
       const pnr = sa.dataset.setall;
-      const inp = document.getElementById(`all-${tab}-${pnr}`);
+      const inp = document.getElementById(`all-${view}-${pnr}`);
       const val = inp.value.trim(); if(!val){ inp.focus(); return; }
-      const key = tab === "arr" ? "arr_bus" : "dep_bus";
+      const key = view === "arr" ? "arr_bus" : "dep_bus";
       sa.disabled = true;
       const { error } = await sb.from("passengers").update({[key]: val}).eq("pnr", pnr);
       sa.disabled = false;
       if(error){ toast("Not saved: " + error.message); return; }
       rows.forEach(r => { if(r.pnr === pnr) r[key] = val; });
-      render(); toast(`Bus ${val} set for ${pnr}`);
+      sa.blur(); render(); toast(`Bus ${val} set for ${pnr}`);
       return;
     }
     const del = e.target.closest("button[data-del]");
@@ -280,16 +333,18 @@ footer button{padding:5px 10px;font-size:.85rem}
     const st = $("fStatus"); st.className = "status";
     if(!sb){ st.textContent = "Not connected to the database."; st.className = "status err"; return; }
     const pnr = $("fPnr").value.trim().toUpperCase();
+    const typed = titleCase($("fOrigin").value);
+    const known = [...ORIGINS, ...rows.map(originOf)].find(o => norm(o) === norm(typed));
+    const origin = known || typed;
     const names = $("fNames").value.split(/\n/).map(s => s.trim()).filter(Boolean);
     if(!names.length){ st.textContent = "Add at least one passenger name."; st.className = "status err"; return; }
     if(rows.some(r => r.pnr === pnr)){ st.textContent = `Booking ${pnr} already exists.`; st.className = "status err"; return; }
-    const base = { pnr, arr_flight: normFl($("fArrFl").value), arr_time: $("fArrT").value, dep_flight: normFl($("fDepFl").value), dep_time: $("fDepT").value };
-    const payload = names.map((name, i) => ({ ...base, name, seq: i + 1 }));
+    const base = { pnr, origin, arr_flight: normFl($("fArrFl").value), arr_time: $("fArrT").value, dep_flight: normFl($("fDepFl").value), dep_time: $("fDepT").value };
     $("fSubmit").disabled = true; st.textContent = "Adding...";
-    const { error } = await sb.from("passengers").insert(payload);
+    const { error } = await sb.from("passengers").insert(names.map((name, i) => ({ ...base, name, seq: i + 1 })));
     $("fSubmit").disabled = false;
     if(error){ st.textContent = "Could not add booking: " + error.message; st.className = "status err"; return; }
-    st.textContent = `Added ${names.length} passenger${names.length === 1 ? "" : "s"} on ${pnr}.`;
+    st.textContent = `Added ${names.length} passenger${names.length === 1 ? "" : "s"} on ${pnr} from ${origin}.`;
     $("fPnr").value = ""; $("fNames").value = "";
     load();
   });
@@ -310,7 +365,7 @@ footer button{padding:5px 10px;font-size:.85rem}
     e.preventDefault();
     const st = $("lStatus"); st.className = "status"; st.textContent = "Checking...";
     const pin = $("lPin").value.trim();
-    if(await tryPin(pin)){ adminPin = pin; st.textContent = ""; $("lPin").value = ""; $("loginPanel").open = false; setAdmin(true); }
+    if(sb && await tryPin(pin)){ adminPin = pin; st.textContent = ""; $("lPin").value = ""; $("loginPanel").open = false; setAdmin(true); }
     else { st.textContent = "Wrong PIN."; st.className = "status err"; }
   });
   $("signOut").addEventListener("click", () => { adminPin = ""; setAdmin(false); });
