@@ -226,7 +226,11 @@ h2 .headreset{margin-left:auto;font-family:var(--body);text-transform:none;lette
       b.time = b.list.map(r => String(r[timeKey])).sort()[0];
       b.list.sort((a, c) => (topIdx(a.name) - topIdx(c.name)) || (a.seq ?? 0) - (c.seq ?? 0) || a.id - c.id);
     });
-    out.sort((a, c) => (a.top - c.top) || a.time.localeCompare(c.time) || a.pnr.localeCompare(c.pnr));
+    /* Bookings at the same time as the top-of-list booking follow it directly */
+    const lead = out.reduce((best, b) => (b.top < (best ? best.top : Infinity) ? b : best), null);
+    const leadTime = lead ? lead.time : null;
+    const sameAsLead = b => (leadTime !== null && b.time === leadTime) ? 0 : 1;
+    out.sort((a, c) => (a.top - c.top) || (sameAsLead(a) - sameAsLead(c)) || a.time.localeCompare(c.time) || a.pnr.localeCompare(c.pnr));
     return out;
   }
   const termHTML = t => t ? `<span class="term">${esc(t)}</span>` : `<span class="term tbc">TBC</span>`;
