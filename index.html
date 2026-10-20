@@ -94,6 +94,8 @@ details.panel summary{cursor:pointer;font-weight:700}
 footer{display:flex;justify-content:flex-end;gap:10px;align-items:center;font-size:.85rem;color:var(--muted);flex-wrap:wrap}
 footer button{padding:5px 10px;font-size:.85rem}
 .reset{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.termedit{display:flex;align-items:center;gap:6px;font-size:.85rem;font-weight:600}
+.termedit select{font:inherit;font-family:var(--mono);font-size:.85rem;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
 h2 .headreset{margin-left:auto;font-family:var(--body);text-transform:none;letter-spacing:0;font-size:.85rem;font-weight:600}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:.9rem;z-index:5}
 [hidden]{display:none!important}
@@ -148,10 +150,10 @@ h2 .headreset{margin-left:auto;font-family:var(--body);text-transform:none;lette
       <label>PNR<input id="fPnr" required maxlength="12" placeholder="e.g. Y869HY"></label>
       <label>Travelling from<input id="fOrigin" required list="originList" placeholder="e.g. Kerala, Dubai, Qatar"></label>
       <label>Arrival flight into Cairo<input id="fArrFl" required placeholder="e.g. XY 267"></label>
-      <label>Arrival terminal<input id="fArrTerm" required list="termList" placeholder="e.g. T3"></label>
+      <label>Arrival terminal<input id="fArrTerm" required list="termList" value="T3" placeholder="e.g. T3"></label>
       <label>Arrives Cairo<input id="fArrT" type="datetime-local" required value="2026-10-27T15:20"></label>
       <label>Departure flight from Cairo<input id="fDepFl" required placeholder="e.g. XY 270"></label>
-      <label>Departure terminal<input id="fDepTerm" required list="termList" placeholder="e.g. T3"></label>
+      <label>Departure terminal<input id="fDepTerm" required list="termList" value="T3" placeholder="e.g. T3"></label>
       <label>Departs Cairo<input id="fDepT" type="datetime-local" required value="2026-11-01T13:25"></label>
       <label class="wide">Passenger names, one per line. For families add the count in brackets, e.g. Ali &amp; Family (2 adults, 2 kids)<textarea id="fNames" required></textarea></label>
       <div class="actions">
@@ -234,6 +236,8 @@ h2 .headreset{margin-left:auto;font-family:var(--body);text-transform:none;lette
     return out;
   }
   const termHTML = t => t ? `<span class="term">${esc(t)}</span>` : `<span class="term tbc">TBC</span>`;
+  const TERMINALS = ["T1", "T2", "T3"];
+  const termOptions = cur => (cur ? "" : `<option value="" selected>TBC</option>`) + [...new Set([...TERMINALS, ...(cur ? [cur] : [])])].map(t => `<option value="${esc(t)}"${t === cur ? " selected" : ""}>${esc(t)}</option>`).join("");
   const legHTML = (label, t, term) => { const f = fmt(t); return `<span class="leg"><span class="lbl">${label}</span>${term !== undefined ? termHTML(term) + " " : ""}<span>${f.d}</span> ${f.t}</span>`; };
   const adultsOf = r => Number.isFinite(+r.adults) && r.adults !== null ? +r.adults : 1;
   const kidsOf = r => +r.kids || 0;
@@ -273,6 +277,7 @@ h2 .headreset{margin-left:auto;font-family:var(--body);text-transform:none;lette
       const head = `<div class="group-label${b.top !== Infinity ? " lead" : ""}">
         <span class="glmeta"><span class="time">${f.t}</span><span>${flights.map(esc).join(" / ")} ${arr ? "lands" : "departs"}${terms.length ? " " + terms.map(esc).join(" / ") + "," : ""} ${f.d}</span><span class="chip">${esc(b.pnr)}</span><span>${headcount(b.list).text} · from ${esc(originOf(b.list[0]))}</span></span>
         <span class="glactions">
+          ${isAdmin ? `<label class="termedit">Terminal <select id="term-${view}-${esc(b.pnr)}" data-term="${esc(b.pnr)}" aria-label="Terminal for ${esc(b.pnr)}">${termOptions(terms[0])}</select></label>` : ""}
           <span class="setall"><input id="all-${view}-${esc(b.pnr)}" placeholder="Bus for all" aria-label="Bus number for all of ${esc(b.pnr)}"><button type="button" data-setall="${esc(b.pnr)}">Apply</button></span>
           ${isAdmin ? `<button type="button" class="danger${pendingDel === b.pnr ? " confirm" : ""}" data-del="${esc(b.pnr)}">${pendingDel === b.pnr ? "Confirm delete" : "Delete booking"}</button>` : ""}
         </span>
@@ -333,6 +338,20 @@ h2 .headreset{margin-left:auto;font-family:var(--body);text-transform:none;lette
     view = b.dataset.view; pendingDel = null;
     document.querySelectorAll(".views button").forEach(x => x.setAttribute("aria-selected", x === b));
     render();
+  });
+
+  /* Admin: change a booking's terminal for the current tab's leg */
+  $("rows").addEventListener("change", async e => {
+    const sel = e.target.closest("select[data-term]"); if(!sel || !sb || !isAdmin) return;
+    const pnr = sel.dataset.term, which = view === "arr" ? "arr" : "dep", val = sel.value;
+    if(!val) return;
+    sel.disabled = true;
+    const { data, error } = await sb.rpc("set_terminal", { p_pnr: pnr, p_which: which, p_terminal: val, p_pin: adminPin });
+    sel.disabled = false;
+    if(error){ toast("Terminal not saved: " + error.message); return; }
+    if(!(data > 0)){ toast("Not allowed. Check the admin PIN."); return; }
+    rows.forEach(r => { if(r.pnr === pnr) r[which + "_terminal"] = val; });
+    sel.blur(); render(); toast(`${pnr} ${which === "arr" ? "arrival" : "departure"} terminal set to ${val}`);
   });
 
   /* Save one passenger's bus number */
