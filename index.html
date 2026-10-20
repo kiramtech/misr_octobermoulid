@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Misr Trip Coordinator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+:root{
+  --bg:#f3f6f6; --surface:#ffffff; --ink:#12302f; --muted:#5b7171; --line:#d6e0df;
+  --accent:#0f6b68; --accent-soft:#e1efee; --time:#b45f06; --pin:#7a4d00; --pin-soft:#fbf1dc; --warn:#a33a2a;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Source Sans 3","Segoe UI",Roboto,Arial,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#0e1716; --surface:#152221; --ink:#e3eeed; --muted:#93a9a7; --line:#2a3d3c;
+  --accent:#4fb8b2; --accent-soft:#183331; --time:#f0a24a; --pin:#f3c56b; --pin-soft:#2d2512; --warn:#ef8a78;
+  color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:860px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:10px;border-bottom:2px solid var(--ink);padding-bottom:10px}
+h1{font-family:var(--display);font-weight:700;font-size:2.1rem;margin:0;line-height:1}
+.sub{color:var(--muted);margin:4px 0 0;font-size:.9rem}
+.count{font-family:var(--display);font-size:1rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.count b{font-size:1.6rem;color:var(--ink)}
+.tabs{display:flex;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:4px}
+.tabs button{flex:1;border:0;background:none;padding:9px 8px;border-radius:6px;font:inherit;font-weight:600;color:var(--muted);cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--ink);color:var(--bg)}
+.list{display:flex;flex-direction:column;gap:12px}
+.booking{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.booking.pinned{border-color:var(--pin)}
+.bhead{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--accent-soft)}
+.booking.pinned .bhead{background:var(--pin-soft)}
+.bmeta{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;min-width:0}
+.pnr{font-family:var(--mono);font-weight:600;color:var(--accent)}
+.booking.pinned .pnr{color:var(--pin)}
+.flight{font-family:var(--mono);font-weight:600;font-size:.9rem}
+.time{font-family:var(--display);font-weight:700;font-size:1.5rem;color:var(--time);line-height:1;font-variant-numeric:tabular-nums}
+.date{color:var(--muted);font-size:.9rem}
+.tag{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--pin)}
+.bactions{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.row{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(110px,170px);gap:10px;align-items:center;padding:8px 12px;border-top:1px solid var(--line)}
+.row .n{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.85rem}
+.row .name{font-weight:600;overflow-wrap:anywhere}
+.row.vip .name::after{content:" ★";color:var(--pin)}
+input,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 9px;min-width:0}
+input.bus{width:100%;font-family:var(--mono);font-size:.9rem}
+input.bus.saved{border-color:var(--accent)}
+input:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:7px 12px}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--surface);font-weight:600}
+button.danger{border-color:var(--warn);color:var(--warn);background:var(--surface)}
+button.danger.confirm{background:var(--warn);color:var(--surface)}
+button:disabled{opacity:.55;cursor:default}
+.setall{display:flex;gap:6px}
+.setall input{width:110px;font-family:var(--mono);font-size:.85rem;padding:6px 8px}
+.setall button{padding:6px 10px;font-size:.85rem}
+.colhead{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(110px,170px);gap:10px;padding:0 12px;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+details.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+details.panel summary{cursor:pointer;font-weight:700}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:12px}
+.form label{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:var(--muted);min-width:0}
+.form .wide{grid-column:1/-1}
+.form textarea{min-height:120px;resize:vertical}
+.form .actions{grid-column:1/-1;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.status{font-size:.85rem;color:var(--muted)}
+.status.err{color:var(--warn)}
+.banner{padding:10px 12px;border-radius:8px;background:var(--pin-soft);color:var(--pin);font-size:.9rem}
+.empty{padding:24px 12px;color:var(--muted);text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+footer{display:flex;justify-content:flex-end;gap:10px;align-items:center;font-size:.85rem;color:var(--muted);flex-wrap:wrap}
+footer button{padding:5px 10px;font-size:.85rem}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:.9rem}
+[hidden]{display:none!important}
+@media (max-width:560px){
+  .row,.colhead{grid-template-columns:22px minmax(0,1fr) 110px;gap:8px}
+  .setall input{width:90px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Misr Trip Coordinator</h1>
+      <p class="sub">Cairo airport transfers to and from Mazrah. All times local.</p>
+    </div>
+    <div class="count"><b id="cPax">0</b> passengers · <b id="cBook">0</b> bookings</div>
+  </header>
+
+  <div class="banner" id="configBanner" hidden>Not connected yet. Paste your Supabase Project URL and anon key into config.js.</div>
+
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" id="tabArr" aria-selected="true" data-tab="arr">Arrivals in Cairo</button>
+    <button type="button" role="tab" id="tabDep" aria-selected="false" data-tab="dep">Departures from Cairo</button>
+  </div>
+
+  <div class="colhead" id="colhead"><span>#</span><span>Passenger</span><span id="busHead">Cairo to Mazrah bus</span></div>
+  <div class="list" id="list"><div class="empty">Loading passengers...</div></div>
+
+  <details class="panel" id="addPanel">
+    <summary>Add a booking</summary>
+    <form class="form" id="addForm" autocomplete="off">
+      <label>PNR<input id="fPnr" required maxlength="12" placeholder="e.g. Y869HY"></label>
+      <label>Arrival flight into Cairo<input id="fArrFl" required placeholder="e.g. XY 267"></label>
+      <label>Arrives Cairo<input id="fArrT" type="datetime-local" required value="2026-10-27T15:20"></label>
+      <label>Departure flight from Cairo<input id="fDepFl" required placeholder="e.g. XY 270"></label>
+      <label>Departs Cairo<input id="fDepT" type="datetime-local" required value="2026-11-01T13:25"></label>
+      <label class="wide">Passenger names, one per line<textarea id="fNames" required></textarea></label>
+      <div class="actions">
+        <button type="submit" class="primary" id="fSubmit">Add booking</button>
+        <span class="status" id="fStatus"></span>
+      </div>
+    </form>
+  </details>
+
+  <details class="panel" id="loginPanel">
+    <summary>Admin</summary>
+    <form class="form" id="loginForm">
+      <label>Admin PIN<input id="lPin" type="password" inputmode="numeric" required autocomplete="off"></label>
+      <div class="actions"><button type="submit" class="primary" id="lSubmit">Unlock admin</button><span class="status" id="lStatus"></span></div>
+    </form>
+  </details>
+
+  <footer id="adminBar" hidden><span>Admin mode: you can delete bookings</span><button type="button" id="signOut">Lock</button></footer>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+(function(){
+  const CFG = window.APP_CONFIG || {};
+  const SUPABASE_URL = CFG.SUPABASE_URL || "";
+  const SUPABASE_ANON_KEY = CFG.SUPABASE_ANON_KEY || "";
+  const PINNED = CFG.PINNED || [];
+  const $ = id => document.getElementById(id);
+  const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  let sb = null, rows = [], tab = "arr", isAdmin = false, adminPin = "", pendingDel = null;
+
+  const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const norm = s => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
+  const normFl = s => String(s).toUpperCase().replace(/\s+/g, " ").trim().replace(/^([A-Z0-9]{2})\s?(\d+)$/, "$1 $2");
+  const pinIdx = name => PINNED.map(norm).indexOf(norm(name));
+  function fmt(v){
+    if(!v) return {d:"", t:""};
+    const s = String(v).replace(" ", "T");
+    const [d, t] = s.split("T"); const [y, m, dd] = d.split("-");
+    return {d: +dd + " " + MON[+m - 1], t: (t || "").slice(0, 5)};
+  }
+  function toast(msg){ const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, 2200); }
+
+  /* Group rows into bookings for the active list and order them:
+     bookings containing pinned passengers first (in PINNED order), then by time, then PNR. */
+  function bookings(){
+    const fl = tab === "arr" ? "arr_flight" : "dep_flight";
+    const tm = tab === "arr" ? "arr_time" : "dep_time";
+    const map = new Map();
+    rows.forEach(r => {
+      if(!map.has(r.pnr)) map.set(r.pnr, {pnr: r.pnr, list: [], flights: new Set(), time: null});
+      const b = map.get(r.pnr);
+      b.list.push(r); b.flights.add(r[fl]);
+      const t = String(r[tm]); if(!b.time || t < b.time) b.time = t;
+    });
+    const out = [...map.values()];
+    out.forEach(b => {
+      b.pin = Math.min(...b.list.map(r => { const i = pinIdx(r.name); return i < 0 ? Infinity : i; }));
+      b.list.sort((a, c) => {
+        const pa = pinIdx(a.name), pc = pinIdx(c.name);
+        if(pa >= 0 || pc >= 0) return (pa < 0 ? Infinity : pa) - (pc < 0 ? Infinity : pc);
+        return String(a[tm]).localeCompare(String(c[tm])) || (a.seq ?? 0) - (c.seq ?? 0) || a.id - c.id;
+      });
+    });
+    out.sort((a, c) => (a.pin - c.pin) || a.time.localeCompare(c.time) || a.pnr.localeCompare(c.pnr));
+    return out;
+  }
+
+  function render(){
+    $("cPax").textContent = rows.length;
+    $("cBook").textContent = new Set(rows.map(r => r.pnr)).size;
+    $("busHead").textContent = tab === "arr" ? "Cairo to Mazrah bus" : "Mazrah to Cairo bus";
+    const busKey = tab === "arr" ? "arr_bus" : "dep_bus";
+    const list = bookings();
+    if(!list.length){ $("list").innerHTML = `<div class="empty">${sb ? "No bookings yet. Add one below." : "Not connected to the database."}</div>`; return; }
+    let n = 0;
+    $("list").innerHTML = list.map(b => {
+      const f = fmt(b.time);
+      const pinned = b.pin !== Infinity;
+      const head = `<div class="bhead">
+        <div class="bmeta">
+          ${pinned ? `<span class="tag">Pinned</span>` : ""}
+          <span class="pnr">${esc(b.pnr)}</span>
+          <span class="flight">${[...b.flights].map(esc).join(" / ")}</span>
+          <span class="time">${f.t}</span><span class="date">${f.d}</span>
+          <span class="date">${b.list.length} pax</span>
+        </div>
+        <div class="bactions">
+          <div class="setall">
+            <input id="all-${tab}-${esc(b.pnr)}" data-pnr="${esc(b.pnr)}" placeholder="Bus for all" aria-label="Bus number for all passengers in ${esc(b.pnr)}">
+            <button type="button" data-setall="${esc(b.pnr)}">Apply</button>
+          </div>
+          ${isAdmin ? `<button type="button" class="danger${pendingDel === b.pnr ? " confirm" : ""}" data-del="${esc(b.pnr)}">${pendingDel === b.pnr ? "Confirm delete" : "Delete booking"}</button>` : ""}
+        </div>
+      </div>`;
+      const body = b.list.map(r => {
+        n++;
+        return `<div class="row${pinIdx(r.name) >= 0 ? " vip" : ""}">
+          <span class="n">${n}</span>
+          <span class="name">${esc(r.name)}</span>
+          <input class="bus${r[busKey] ? " saved" : ""}" id="bus-${tab}-${r.id}" data-id="${r.id}" value="${esc(r[busKey] || "")}" placeholder="Bus no." aria-label="${tab === "arr" ? "Cairo to Mazrah" : "Mazrah to Cairo"} bus for ${esc(r.name)}">
+        </div>`;
+      }).join("");
+      return `<section class="booking${pinned ? " pinned" : ""}">${head}${body}</section>`;
+    }).join("");
+  }
+
+  async function load(){
+    const { data, error } = await sb.from("passengers").select("*").order("id");
+    if(error){ $("list").innerHTML = `<div class="empty">Could not load passengers: ${esc(error.message)}</div>`; return; }
+    const active = document.activeElement;
+    if(active && active.classList && active.classList.contains("bus") && active.value !== active.defaultValue){ rows = data; return; }
+    rows = data; render();
+  }
+
+  /* Tabs */
+  document.querySelector(".tabs").addEventListener("click", e => {
+    const b = e.target.closest("button[data-tab]"); if(!b) return;
+    tab = b.dataset.tab;
+    $("tabArr").setAttribute("aria-selected", tab === "arr");
+    $("tabDep").setAttribute("aria-selected", tab === "dep");
+    pendingDel = null; render();
+  });
+
+  /* Save one passenger's bus number */
+  $("list").addEventListener("change", async e => {
+    const t = e.target; if(!t.classList.contains("bus") || !sb) return;
+    const key = tab === "arr" ? "arr_bus" : "dep_bus";
+    const val = t.value.trim() || null;
+    const { error } = await sb.from("passengers").update({[key]: val}).eq("id", +t.dataset.id);
+    if(error){ toast("Bus number not saved: " + error.message); return; }
+    const r = rows.find(x => x.id === +t.dataset.id); if(r) r[key] = val;
+    t.classList.toggle("saved", !!val); toast("Bus number saved");
+  });
+
+  /* Apply bus to whole booking, and admin delete */
+  $("list").addEventListener("click", async e => {
+    const sa = e.target.closest("button[data-setall]");
+    if(sa && sb){
+      const pnr = sa.dataset.setall;
+      const inp = document.getElementById(`all-${tab}-${pnr}`);
+      const val = inp.value.trim(); if(!val){ inp.focus(); return; }
+      const key = tab === "arr" ? "arr_bus" : "dep_bus";
+      sa.disabled = true;
+      const { error } = await sb.from("passengers").update({[key]: val}).eq("pnr", pnr);
+      sa.disabled = false;
+      if(error){ toast("Not saved: " + error.message); return; }
+      rows.forEach(r => { if(r.pnr === pnr) r[key] = val; });
+      render(); toast(`Bus ${val} set for ${pnr}`);
+      return;
+    }
+    const del = e.target.closest("button[data-del]");
+    if(del && sb && isAdmin){
+      const pnr = del.dataset.del;
+      if(pendingDel !== pnr){ pendingDel = pnr; render(); setTimeout(() => { if(pendingDel === pnr){ pendingDel = null; render(); } }, 5000); return; }
+      pendingDel = null;
+      const { data, error } = await sb.rpc("delete_booking", { p_pnr: pnr, p_pin: adminPin });
+      if(error){ toast("Delete failed: " + error.message); render(); return; }
+      if(!data){ toast("Nothing deleted. Check the admin PIN."); render(); return; }
+      rows = rows.filter(r => r.pnr !== pnr); render(); toast(`Booking ${pnr} deleted`);
+    }
+  });
+
+  /* Add booking */
+  $("addForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const st = $("fStatus"); st.className = "status";
+    if(!sb){ st.textContent = "Not connected to the database."; st.className = "status err"; return; }
+    const pnr = $("fPnr").value.trim().toUpperCase();
+    const names = $("fNames").value.split(/\n/).map(s => s.trim()).filter(Boolean);
+    if(!names.length){ st.textContent = "Add at least one passenger name."; st.className = "status err"; return; }
+    if(rows.some(r => r.pnr === pnr)){ st.textContent = `Booking ${pnr} already exists.`; st.className = "status err"; return; }
+    const base = { pnr, arr_flight: normFl($("fArrFl").value), arr_time: $("fArrT").value, dep_flight: normFl($("fDepFl").value), dep_time: $("fDepT").value };
+    const payload = names.map((name, i) => ({ ...base, name, seq: i + 1 }));
+    $("fSubmit").disabled = true; st.textContent = "Adding...";
+    const { error } = await sb.from("passengers").insert(payload);
+    $("fSubmit").disabled = false;
+    if(error){ st.textContent = "Could not add booking: " + error.message; st.className = "status err"; return; }
+    st.textContent = `Added ${names.length} passenger${names.length === 1 ? "" : "s"} on ${pnr}.`;
+    $("fPnr").value = ""; $("fNames").value = "";
+    load();
+  });
+
+  /* Admin PIN (checked by the database; kept only for this browser tab) */
+  function setAdmin(on){
+    isAdmin = on;
+    $("adminBar").hidden = !on;
+    $("loginPanel").hidden = on;
+    try{ on ? sessionStorage.setItem("misrPin", adminPin) : sessionStorage.removeItem("misrPin"); }catch(e){}
+    render();
+  }
+  async function tryPin(pin){
+    const { data, error } = await sb.rpc("check_admin_pin", { p_pin: pin });
+    return !error && data === true;
+  }
+  $("loginForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const st = $("lStatus"); st.className = "status"; st.textContent = "Checking...";
+    const pin = $("lPin").value.trim();
+    if(await tryPin(pin)){ adminPin = pin; st.textContent = ""; $("lPin").value = ""; $("loginPanel").open = false; setAdmin(true); }
+    else { st.textContent = "Wrong PIN."; st.className = "status err"; }
+  });
+  $("signOut").addEventListener("click", () => { adminPin = ""; setAdmin(false); });
+
+  /* Start */
+  if(!SUPABASE_URL.startsWith("http") || !window.supabase){
+    $("configBanner").hidden = false; render(); return;
+  }
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  load();
+  (async () => { let p = ""; try{ p = sessionStorage.getItem("misrPin") || ""; }catch(e){}
+    if(p && await tryPin(p)){ adminPin = p; setAdmin(true); } })();
+  sb.channel("passengers-live").on("postgres_changes", { event: "*", schema: "public", table: "passengers" }, () => load()).subscribe();
+  document.addEventListener("visibilitychange", () => { if(!document.hidden) load(); });
+})();
+</script>
+</body>
+</html>
