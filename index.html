@@ -69,6 +69,7 @@ button:disabled{opacity:.55;cursor:default}
 .n{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.85rem}
 .name{font-weight:600;overflow-wrap:anywhere}
 .row.star .name::after{content:" ★";color:var(--gold)}
+.party{display:inline-block;font-weight:600;font-size:.75rem;padding:1px 7px;border-radius:10px;background:var(--gold-soft);color:var(--gold);margin-left:6px;vertical-align:1px}
 .chip{font-family:var(--mono);font-size:.75rem;padding:2px 7px;border-radius:4px;background:var(--accent-soft);color:var(--accent)}
 .flight{font-family:var(--mono);font-weight:600;font-size:.82rem}
 .leg{font-size:.85rem;font-variant-numeric:tabular-nums}
@@ -90,6 +91,7 @@ details.panel summary{cursor:pointer;font-weight:700}
 footer{display:flex;justify-content:flex-end;gap:10px;align-items:center;font-size:.85rem;color:var(--muted);flex-wrap:wrap}
 footer button{padding:5px 10px;font-size:.85rem}
 .reset{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+h2 .headreset{margin-left:auto;font-family:var(--body);text-transform:none;letter-spacing:0;font-size:.85rem;font-weight:600}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:.9rem;z-index:5}
 [hidden]{display:none!important}
 @media (max-width:760px){
@@ -114,7 +116,8 @@ footer button{padding:5px 10px;font-size:.85rem}
       <p class="sub">Cairo airport transfers to and from Mazrah. All times local.</p>
     </div>
     <div class="totals">
-      <div><b id="tPax">0</b><span>Passengers</span></div>
+      <div><b id="tPax">0</b><span>People</span></div>
+      <div><b id="tKids">0</b><span>Kids</span></div>
       <div><b id="tBook">0</b><span>Bookings</span></div>
       <div><b id="tOrig">0</b><span>Origins</span></div>
     </div>
@@ -129,7 +132,7 @@ footer button{padding:5px 10px;font-size:.85rem}
   </div>
 
   <section>
-    <h2 id="viewTitle">Cairo arrivals <small>Terminal 3 to Mazrah</small></h2>
+    <h2 id="viewTitle">Cairo arrivals <small>Cairo airport to Mazrah</small></h2>
     <div class="manifest">
       <div class="mhead" id="mhead"></div>
       <div id="rows"><div class="empty">Loading passengers...</div></div>
@@ -145,7 +148,7 @@ footer button{padding:5px 10px;font-size:.85rem}
       <label>Arrives Cairo<input id="fArrT" type="datetime-local" required value="2026-10-27T15:20"></label>
       <label>Departure flight from Cairo<input id="fDepFl" required placeholder="e.g. XY 270"></label>
       <label>Departs Cairo<input id="fDepT" type="datetime-local" required value="2026-11-01T13:25"></label>
-      <label class="wide">Passenger names, one per line<textarea id="fNames" required></textarea></label>
+      <label class="wide">Passenger names, one per line. For families add the count in brackets, e.g. Ali &amp; Family (2 adults, 2 kids)<textarea id="fNames" required></textarea></label>
       <div class="actions">
         <button type="submit" class="primary" id="fSubmit">Add booking</button>
         <span class="status" id="fStatus"></span>
@@ -186,7 +189,7 @@ footer button{padding:5px 10px;font-size:.85rem}
   const ORIGINS = CFG.ORIGINS || ["Kerala", "Dubai", "Qatar"];
   const $ = id => document.getElementById(id);
   const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  let sb = null, rows = [], view = "arr", isAdmin = false, adminPin = "", pendingDel = null;
+  let sb = null, rows = [], view = "arr", isAdmin = false, adminPin = "", pendingDel = null, pendingReset = null;
 
   const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const norm = s => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
@@ -220,13 +223,34 @@ footer button{padding:5px 10px;font-size:.85rem}
     return out;
   }
   const legHTML = (label, fl, t) => { const f = fmt(t); return `<span class="leg"><span class="lbl">${label}</span><span class="flight">${esc(fl)}</span> <span>${f.d}</span> ${f.t}</span>`; };
-  const nameHTML = r => `<span class="name">${esc(r.name)}${starTitle(r.name) ? " (" + esc(starTitle(r.name)) + ")" : ""}</span>`;
+  const adultsOf = r => Number.isFinite(+r.adults) && r.adults !== null ? +r.adults : 1;
+  const kidsOf = r => +r.kids || 0;
+  const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+  const kidWord = n => `${n} ${n === 1 ? "kid" : "kids"}`;
+  function headcount(list){
+    const a = list.reduce((s, r) => s + adultsOf(r), 0), k = list.reduce((s, r) => s + kidsOf(r), 0);
+    return { a, k, total: a + k, text: `${plural(a + k, "person").replace("persons", "people")}` + (k ? ` · ${plural(a, "adult")}, ${kidWord(k)}` : "") };
+  }
+  const partyTag = r => (adultsOf(r) + kidsOf(r) > 1) ? ` <span class="party">${plural(adultsOf(r), "adult")}${kidsOf(r) ? ", " + kidWord(kidsOf(r)) : ""}</span>` : "";
+  const nameHTML = r => `<span class="name">${esc(r.name)}${starTitle(r.name) ? " (" + esc(starTitle(r.name)) + ")" : ""}${partyTag(r)}</span>`;
+  /* "Ali & Family (2 adults, 2 kids)" -> name "Ali & Family", 2 adults, 2 kids */
+  function parseLine(line){
+    let name = line.replace(/^\s*\d+\s*[-.)]\s*/, "").trim(), adults = 1, kids = 0;
+    const m = name.match(/\(([^)]*\d[^)]*)\)\s*$/);
+    if(m){
+      const a = m[1].match(/(\d+)\s*adu?l?t?s?/i), k = m[1].match(/(\d+)\s*(kid|kids|child|children)/i);
+      if(a || k){ adults = a ? +a[1] : 0; kids = k ? +k[1] : 0; name = name.slice(0, m.index).trim(); }
+    }
+    return { name, adults, kids };
+  }
   const rowClass = (cols, r) => `row ${cols}${starTitle(r.name) !== null ? " star" : ""}`;
 
   function renderBusView(){
     const arr = view === "arr";
     const fl = arr ? "arr_flight" : "dep_flight", tm = arr ? "arr_time" : "dep_time", busKey = arr ? "arr_bus" : "dep_bus";
-    $("viewTitle").innerHTML = arr ? "Cairo arrivals <small>Terminal 3 to Mazrah</small>" : "Cairo departures <small>Mazrah to Terminal 3</small>";
+    const which = arr ? "arr" : "dep";
+    const resetBtn = isAdmin ? `<button type="button" class="danger headreset${pendingReset === which ? " confirm" : ""}" data-reset="${which}">${pendingReset === which ? "Confirm reset" : (arr ? "Reset arrival buses" : "Reset departure buses")}</button>` : "";
+    $("viewTitle").innerHTML = (arr ? "Cairo arrivals <small>Cairo airport to Mazrah</small>" : "Cairo departures <small>Mazrah to Cairo airport</small>") + resetBtn;
     $("mhead").className = "mhead cols-bus";
     $("mhead").innerHTML = `<span>#</span><span>Passenger</span><span>PNR</span><span>${arr ? "Arrives Cairo" : "Departs Cairo"}</span><span>${arr ? "Cairo to Mazrah bus" : "Mazrah to Cairo bus"}</span>`;
     let n = 0;
@@ -234,7 +258,7 @@ footer button{padding:5px 10px;font-size:.85rem}
       const flights = [...new Set(b.list.map(r => r[fl]))];
       const f = fmt(b.time);
       const head = `<div class="group-label${b.top !== Infinity ? " lead" : ""}">
-        <span class="glmeta"><span class="time">${f.t}</span><span>${flights.map(esc).join(" / ")} ${arr ? "lands" : "departs"} ${f.d}</span><span class="chip">${esc(b.pnr)}</span><span>${b.list.length} pax · ${originOf(b.list[0]) ? "from " + esc(originOf(b.list[0])) : ""}</span></span>
+        <span class="glmeta"><span class="time">${f.t}</span><span>${flights.map(esc).join(" / ")} ${arr ? "lands" : "departs"} ${f.d}</span><span class="chip">${esc(b.pnr)}</span><span>${headcount(b.list).text} · from ${esc(originOf(b.list[0]))}</span></span>
         <span class="glactions">
           <span class="setall"><input id="all-${view}-${esc(b.pnr)}" placeholder="Bus for all" aria-label="Bus number for all of ${esc(b.pnr)}"><button type="button" data-setall="${esc(b.pnr)}">Apply</button></span>
           ${isAdmin ? `<button type="button" class="danger${pendingDel === b.pnr ? " confirm" : ""}" data-del="${esc(b.pnr)}">${pendingDel === b.pnr ? "Confirm delete" : "Delete booking"}</button>` : ""}
@@ -260,7 +284,7 @@ footer button{padding:5px 10px;font-size:.85rem}
     return ordered.map(g => {
       const bks = bookings(g.list, "arr_time");
       let n = 0;
-      return `<div class="group-label origin"><span>From ${esc(g.o)}</span><span>${g.list.length} passenger${g.list.length === 1 ? "" : "s"} · ${bks.length} booking${bks.length === 1 ? "" : "s"}</span></div>` +
+      return `<div class="group-label origin"><span>From ${esc(g.o)}</span><span>${headcount(g.list).text} · ${plural(bks.length, "booking")}</span></div>` +
         bks.map(b => b.list.map(r => { n++; return `<div class="${rowClass("cols-origin", r)}">
           <span class="n">${n}</span>${nameHTML(r)}
           <span><span class="lbl">PNR</span><span class="chip">${esc(r.pnr)}</span></span>
@@ -271,7 +295,9 @@ footer button{padding:5px 10px;font-size:.85rem}
   }
 
   function render(){
-    $("tPax").textContent = rows.length;
+    const hc = headcount(rows);
+    $("tPax").textContent = hc.total;
+    $("tKids").textContent = hc.k;
     $("tBook").textContent = new Set(rows.map(r => r.pnr)).size;
     const origins = [...new Set(rows.map(originOf))];
     $("tOrig").textContent = origins.length;
@@ -345,15 +371,15 @@ footer button{padding:5px 10px;font-size:.85rem}
     const typed = titleCase($("fOrigin").value);
     const known = [...ORIGINS, ...rows.map(originOf)].find(o => norm(o) === norm(typed));
     const origin = known || typed;
-    const names = $("fNames").value.split(/\n/).map(s => s.trim()).filter(Boolean);
+    const names = $("fNames").value.split(/\n/).map(s => s.trim()).filter(Boolean).map(parseLine).filter(p => p.name);
     if(!names.length){ st.textContent = "Add at least one passenger name."; st.className = "status err"; return; }
     if(rows.some(r => r.pnr === pnr)){ st.textContent = `Booking ${pnr} already exists.`; st.className = "status err"; return; }
     const base = { pnr, origin, arr_flight: normFl($("fArrFl").value), arr_time: $("fArrT").value, dep_flight: normFl($("fDepFl").value), dep_time: $("fDepT").value };
     $("fSubmit").disabled = true; st.textContent = "Adding...";
-    const { error } = await sb.from("passengers").insert(names.map((name, i) => ({ ...base, name, seq: i + 1 })));
+    const { error } = await sb.from("passengers").insert(names.map((p, i) => ({ ...base, name: p.name, adults: p.adults, kids: p.kids, seq: i + 1 })));
     $("fSubmit").disabled = false;
     if(error){ st.textContent = "Could not add booking: " + error.message; st.className = "status err"; return; }
-    st.textContent = `Added ${names.length} passenger${names.length === 1 ? "" : "s"} on ${pnr} from ${origin}.`;
+    st.textContent = `Added ${headcount(names).text} on ${pnr} from ${origin}.`;
     $("fPnr").value = ""; $("fNames").value = "";
     load();
   });
@@ -381,19 +407,23 @@ footer button{padding:5px 10px;font-size:.85rem}
 
   /* Admin: reset bus numbers (two-tap confirm) */
   const RESET_LABEL = { arr: "Arrival buses", dep: "Departure buses", all: "All buses" };
-  let pendingReset = null;
-  $("adminBar").addEventListener("click", async e => {
+  function paintFooterReset(){
+    $("adminBar").querySelectorAll("button[data-reset]").forEach(x => {
+      const on = pendingReset === x.dataset.reset;
+      x.classList.toggle("confirm", on); x.textContent = on ? "Confirm reset" : RESET_LABEL[x.dataset.reset];
+    });
+  }
+  document.addEventListener("click", async e => {
     const b = e.target.closest("button[data-reset]"); if(!b || !sb || !isAdmin) return;
     const which = b.dataset.reset;
-    const btns = $("adminBar").querySelectorAll("button[data-reset]");
     if(pendingReset !== which){
-      pendingReset = which;
-      btns.forEach(x => { x.classList.toggle("confirm", x === b); x.textContent = x === b ? "Confirm reset" : RESET_LABEL[x.dataset.reset]; });
-      setTimeout(() => { if(pendingReset === which){ pendingReset = null; btns.forEach(x => { x.classList.remove("confirm"); x.textContent = RESET_LABEL[x.dataset.reset]; }); } }, 5000);
+      pendingReset = which; paintFooterReset(); render();
+      setTimeout(() => { if(pendingReset === which){ pendingReset = null; paintFooterReset(); render(); } }, 5000);
       return;
     }
-    pendingReset = null;
-    btns.forEach(x => { x.classList.remove("confirm"); x.textContent = RESET_LABEL[x.dataset.reset]; x.disabled = true; });
+    pendingReset = null; paintFooterReset();
+    const btns = document.querySelectorAll("button[data-reset]");
+    btns.forEach(x => x.disabled = true);
     const { data, error } = await sb.rpc("reset_bus_numbers", { p_which: which, p_pin: adminPin });
     btns.forEach(x => x.disabled = false);
     if(error){ toast("Reset failed: " + error.message); return; }
